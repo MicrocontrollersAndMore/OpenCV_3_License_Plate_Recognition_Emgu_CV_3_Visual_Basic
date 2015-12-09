@@ -1,1 +1,0 @@
-# OpenCV_3_License_Plate_Recognition_Emgu_CV_3_Visual_Basic
