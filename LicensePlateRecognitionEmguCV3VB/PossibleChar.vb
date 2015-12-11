@@ -20,9 +20,9 @@ Public Class PossibleChar
     Public contour As VectorOfPoint
 
     Public boundingRect As Rectangle
-
-    Public lngCenterX As Long
-    Public lngCenterY As Long
+    
+    Public intCenterX As Integer
+    Public intCenterY As Integer
 
     Public dblDiagonalSize As Double
     Public dblAspectRatio As Double
@@ -34,8 +34,8 @@ Public Class PossibleChar
 
         boundingRect = CvInvoke.BoundingRectangle(contour)
 
-        lngCenterX = CLng((boundingRect.Left + boundingRect.Right) / 2)
-        lngCenterY = CLng((boundingRect.Top + boundingRect.Bottom) / 2)
+        intCenterX = CInt((boundingRect.Left + boundingRect.Right) / 2)
+        intCenterY = CInt((boundingRect.Top + boundingRect.Bottom) / 2)
 
         dblDiagonalSize = Math.Sqrt((boundingRect.Width ^ 2) + (boundingRect.Height ^ 2))
 

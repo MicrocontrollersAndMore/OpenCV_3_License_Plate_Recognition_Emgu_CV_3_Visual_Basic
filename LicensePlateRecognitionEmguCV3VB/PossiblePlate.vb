@@ -29,6 +29,8 @@ Public Class PossiblePlate
         imgGrayscale = Nothing
         imgThresh = Nothing
 
+        rrLocationOfPlateInScene = New RotatedRect()
+
         strChars = ""
     End Sub
 
