@@ -25,9 +25,9 @@ Public Class PossiblePlate
     ' constructor '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     Sub New
                                 'initialize values
-        imgPlate = Nothing
-        imgGrayscale = Nothing
-        imgThresh = Nothing
+        imgPlate = New Mat()
+        imgGrayscale = New Mat()
+        imgThresh = New Mat()
 
         rrLocationOfPlateInScene = New RotatedRect()
 

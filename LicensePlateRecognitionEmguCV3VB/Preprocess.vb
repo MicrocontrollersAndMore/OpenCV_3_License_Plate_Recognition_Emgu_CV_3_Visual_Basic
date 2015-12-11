@@ -21,14 +21,15 @@ Module Preprocess
 
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     Sub preprocess(imgOriginal As Mat, ByRef imgGrayscale As Mat, ByRef imgThresh As Mat)
-        imgGrayscale = extractValue(imgOriginal)
+        imgGrayscale = extractValue(imgOriginal)                                'extract value channel only from original image to get imgGrayscale
 
-        Dim imgMaxContrastGrayscale As Mat = maximizeContrast(imgGrayscale)
+        Dim imgMaxContrastGrayscale As Mat = maximizeContrast(imgGrayscale)         'maximize contrast with top hat and black hat
         
         Dim imgBlurred As New Mat()
 
-        CvInvoke.GaussianBlur(imgMaxContrastGrayscale, imgBlurred, New Size(GAUSSIAN_BLUR_FILTER_SIZE, GAUSSIAN_BLUR_FILTER_SIZE), 0)
+        CvInvoke.GaussianBlur(imgMaxContrastGrayscale, imgBlurred, New Size(GAUSSIAN_BLUR_FILTER_SIZE, GAUSSIAN_BLUR_FILTER_SIZE), 0)       'gaussian blur
         
+                    'adaptive threshold to get imgThresh
         CvInvoke.AdaptiveThreshold(imgBlurred, imgThresh, 255.0, AdaptiveThresholdType.GaussianC, ThresholdType.BinaryInv, ADAPTIVE_THRESH_BLOCK_SIZE, ADAPTIVE_THRESH_WEIGHT)
     End Sub
 

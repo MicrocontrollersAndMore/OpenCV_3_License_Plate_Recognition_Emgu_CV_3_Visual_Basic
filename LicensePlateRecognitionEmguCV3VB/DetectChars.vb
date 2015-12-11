@@ -27,7 +27,7 @@ Module DetectChars
     Const MIN_ASPECT_RATIO As Double = 0.25
     Const MAX_ASPECT_RATIO As Double = 1.0
 
-    Const MIN_PIXEL_AREA As Long = 20
+    Const MIN_PIXEL_AREA As Long = 80
 
                                 'constants for comparing two chars
     Const MIN_DIAG_SIZE_MULTIPLE_AWAY As Double = 0.3
@@ -46,11 +46,12 @@ Module DetectChars
     Const RESIZED_CHAR_IMAGE_WIDTH As Integer = 20
     Const RESIZED_CHAR_IMAGE_HEIGHT As Integer = 30
     
+    Dim SCALAR_WHITE As New MCvScalar(255.0, 255.0, 255.0)
+    Dim SCALAR_GREEN As New MCvScalar(0.0, 255.0, 0.0)
+
                                 'variables
-    Dim kNearest As KNearest
-
-    Const MIN_CONTOUR_AREA As Integer = 100
-
+    Dim kNearest As New KNearest()
+    
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     Function loadKNNDataAndTrainKNN() As Boolean
         Dim mtxClassifications As Matrix(Of Single) = New Matrix(Of Single)(1, 1)
@@ -107,9 +108,7 @@ Module DetectChars
         streamReader.Close()
 
                     ' train '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
-        Dim kNearest As New KNearest()
-
+        
         kNearest.DefaultK = 1
 
         kNearest.Train(mtxTrainingImages, MlEnum.DataLayoutType.RowSample, mtxClassifications)
@@ -120,6 +119,7 @@ Module DetectChars
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     Function detectCharsInPlates(listOfPossiblePlates As List(Of PossiblePlate)) As List(Of PossiblePlate)
         Dim intPlateCounter As Integer = 0              'this is only for showing steps
+        Dim imgContours As Mat
         Dim random As New Random()                      'this is only for showing steps
 
         If (listOfPossiblePlates Is Nothing) Then           'if list of possible plates is null,
@@ -149,11 +149,14 @@ Module DetectChars
             Dim listOfPossibleCharsInPlate As List(Of PossibleChar) = findPossibleCharsInPlate(possiblePlate.imgGrayscale, possiblePlate.imgThresh)
 
             If (frmMain.cbShowSteps.Checked = True) Then
-                Dim imgContours As New Mat(possiblePlate.imgThresh.Size, DepthType.Cv8U, 1)
-                
+                imgContours = New Mat(possiblePlate.imgThresh.Size, DepthType.Cv8U, 3)
+                Dim contours As New VectorOfVectorOfPoint()
+
                 For Each possibleChar As PossibleChar In listOfPossibleCharsInPlate
-                    CvInvoke.DrawContours(imgContours, possibleChar.contour, 0, New MCvScalar(255.0))
+                    contours.Push(possibleChar.contour)
                 Next
+
+                CvInvoke.DrawContours(imgContours, contours, 0, SCALAR_WHITE)
 
                 CvInvoke.Imshow("6", imgContours)
                 
@@ -162,7 +165,9 @@ Module DetectChars
             Dim listOfListsOfMatchingCharsInPlate As List(Of List(Of PossibleChar)) = findListOfListsOfMatchingChars(listOfPossibleCharsInPlate)
 
             If (frmMain.cbShowSteps.Checked = True) Then
-                Dim imgContours As New Mat(possiblePlate.imgThresh.Size, DepthType.Cv8U, 1)
+                imgContours = New Mat(possiblePlate.imgThresh.Size, DepthType.Cv8U, 3)
+
+                Dim contours As New VectorOfVectorOfPoint()
 
                 For Each listOfMatchingChars As List(Of PossibleChar) In listOfListsOfMatchingCharsInPlate
                     Dim intRandomBlue = random.Next(0, 256)
@@ -170,8 +175,9 @@ Module DetectChars
                     Dim intRandomRed = random.Next(0, 256)
 
                     For Each matchingChar As PossibleChar In listOfMatchingChars
-                        CvInvoke.DrawContours(imgContours, matchingChar.contour, 0, New MCvScalar(CDbl(intRandomBlue), CDbl(intRandomGreen), CDbl(intRandomRed)))
+                        contours.Push(matchingChar.contour)
                     Next
+                    CvInvoke.DrawContours(imgContours, contours, 0, New MCvScalar(CDbl(intRandomBlue), CDbl(intRandomGreen), CDbl(intRandomRed)))
                 Next
 
                 CvInvoke.Imshow("7", imgContours)
@@ -209,16 +215,19 @@ Module DetectChars
             Next
 
             If (frmMain.cbShowSteps.Checked = True) Then
-                Dim imgContours As New Mat(possiblePlate.imgThresh.Size, DepthType.Cv8U, 1)
+                imgContours = New Mat(possiblePlate.imgThresh.Size, DepthType.Cv8U, 3)
 
                 For Each listOfMatchingChars As List(Of PossibleChar) In listOfListsOfMatchingCharsInPlate
                     Dim intRandomBlue = random.Next(0, 256)
                     Dim intRandomGreen = random.Next(0, 256)
                     Dim intRandomRed = random.Next(0, 256)
 
+                    Dim contours As New VectorOfVectorOfPoint()
+
                     For Each matchingChar As PossibleChar In listOfMatchingChars
-                        CvInvoke.DrawContours(imgContours, matchingChar.contour, 0, New MCvScalar(CDbl(intRandomBlue), CDbl(intRandomGreen), CDbl(intRandomRed)))
+                        contours.Push(matchingChar.contour)
                     Next
+                    CvInvoke.DrawContours(imgContours, contours, 0, New MCvScalar(CDbl(intRandomBlue), CDbl(intRandomGreen), CDbl(intRandomRed)))
                 Next
                 CvInvoke.Imshow("8", imgContours)
             End If
@@ -236,11 +245,16 @@ Module DetectChars
             Dim longestListOfMatchingCharsInPlate As List(Of PossibleChar) = listOfListsOfMatchingCharsInPlate(intIndexOfLongestListOfChars)
 
             If (frmMain.cbShowSteps.Checked = True) Then
-                Dim imgContours As New Mat(possiblePlate.imgThresh.Size, DepthType.Cv8U, 1)
+                imgContours = New Mat(possiblePlate.imgThresh.Size, DepthType.Cv8U, 3)
+
+                Dim contours As New VectorOfVectorOfPoint()
 
                 For Each matchingChar As PossibleChar In longestListOfMatchingCharsInPlate
-                    CvInvoke.DrawContours(imgContours, matchingChar.contour, 0, New MCvScalar(255.0))
+                    contours.Push(matchingChar.contour)
                 Next
+
+                CvInvoke.DrawContours(imgContours, contours, 0, SCALAR_WHITE)
+
                 CvInvoke.Imshow("9", imgContours)
             End If
 
@@ -287,10 +301,9 @@ Module DetectChars
     
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     Function checkIfPossibleChar(possibleChar As PossibleChar) As Boolean
-        If (possibleChar.lngArea >= MIN_CONTOUR_AREA And _
+        If (possibleChar.intArea > MIN_PIXEL_AREA And _
             possibleChar.boundingRect.Width > MIN_PIXEL_WIDTH And possibleChar.boundingRect.Height > MIN_PIXEL_HEIGHT And _
-            MIN_ASPECT_RATIO < possibleChar.dblAspectRatio And possibleChar.dblAspectRatio < MAX_ASPECT_RATIO And _
-            possibleChar.lngArea > MIN_PIXEL_AREA) Then
+            MIN_ASPECT_RATIO < possibleChar.dblAspectRatio And possibleChar.dblAspectRatio < MAX_ASPECT_RATIO) Then
             Return True
         Else
             Return False
@@ -342,7 +355,7 @@ Module DetectChars
 
             Dim dblAngleBetweenChars As Double = angleBetweenChars(possibleChar, possibleMatchingChar)
 
-            Dim dblChangeInArea As Double = Math.Abs(possibleMatchingChar.lngArea - possibleChar.lngArea) / possibleChar.lngArea
+            Dim dblChangeInArea As Double = Math.Abs(possibleMatchingChar.intArea - possibleChar.intArea) / possibleChar.intArea
             
             Dim dblChangeInWidth As Double = Math.Abs(possibleMatchingChar.boundingRect.Width - possibleChar.boundingRect.Width) / possibleChar.boundingRect.Width
             Dim dblChangeInHeight As Double = Math.Abs(possibleMatchingChar.boundingRect.Height - possibleChar.boundingRect.Height) / possibleChar.boundingRect.Height
@@ -392,7 +405,7 @@ Module DetectChars
                     If (distanceBetweenChars(currentChar, otherChar) < currentChar.dblDiagonalSize * MIN_DIAG_SIZE_MULTIPLE_AWAY) Then
                                         'if we get in here we have found overlapping chars
                                         'next we identify which char is smaller, then if that char was not already removed on a previous pass, remove it
-                        If (currentChar.lngArea < otherChar.lngArea) Then                               'if current char is smaller than other char
+                        If (currentChar.intArea < otherChar.intArea) Then                               'if current char is smaller than other char
                             If (listOfMatchingCharsWithInnerCharRemoved.Contains(currentChar)) Then     'if current char was not already removed on a previous pass . . .
                                 listOfMatchingCharsWithInnerCharRemoved.Remove(currentChar)             'then remove current char
                             End If
@@ -421,7 +434,7 @@ Module DetectChars
         CvInvoke.CvtColor(imgThresh, imgThreshColor, ColorConversion.Gray2Bgr)
 
         For Each currentChar As PossibleChar In listOfMatchingChars
-            CvInvoke.Rectangle(imgThreshColor, currentChar.boundingRect, New MCvScalar(0.0, 255.0, 0.0), 2)
+            CvInvoke.Rectangle(imgThreshColor, currentChar.boundingRect, SCALAR_GREEN, 2)
 
             Dim imgROItoBeCloned As New Mat(imgThresh, currentChar.boundingRect)
 
