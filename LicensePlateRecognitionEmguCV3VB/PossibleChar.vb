@@ -26,7 +26,7 @@ Public Class PossibleChar
 
     Public dblDiagonalSize As Double
     Public dblAspectRatio As Double
-    Public intArea As Integer
+    Public intRectArea As Integer
 
     ' constructor '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     Sub New(_contour As VectorOfPoint)
@@ -41,7 +41,7 @@ Public Class PossibleChar
 
         dblAspectRatio = CDbl(boundingRect.Width) / CDbl(boundingRect.Height)
         
-        intArea = boundingRect.Width * boundingRect.Height
+        intRectArea = boundingRect.Width * boundingRect.Height
     End Sub
 
 End Class

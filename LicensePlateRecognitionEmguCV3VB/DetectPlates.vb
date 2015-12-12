@@ -126,7 +126,7 @@ Module DetectPlates
     
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     Function findPossibleCharsInScene(imgThresh As Mat) As List(Of PossibleChar)
-        Dim listOfPossibleChars As List(Of PossibleChar) = New List(Of PossibleChar)()      'this is the return value
+        Dim listOfPossibleChars As List(Of PossibleChar) = New List(Of PossibleChar)      'this is the return value
 
         Dim imgContours As New Mat(imgThresh.Size(), DepthType.Cv8U, 3)
         Dim intCountOfPossibleChars As Integer = 0
@@ -200,10 +200,8 @@ Module DetectPlates
         CvInvoke.GetRotationMatrix2D(ptfPlateCenter, dblCorrectionAngleInDeg, 1.0, rotationMatrix)
 
         CvInvoke.WarpAffine(imgOriginal, imgRotated, rotationMatrix, imgOriginal.Size)
-
-        Dim rectSize As New Size(possiblePlate.rrLocationOfPlateInScene.MinAreaRect.Width, possiblePlate.rrLocationOfPlateInScene.MinAreaRect.Height)
         
-        CvInvoke.GetRectSubPix(imgRotated, rectSize, possiblePlate.rrLocationOfPlateInScene.Center, imgCropped)
+        CvInvoke.GetRectSubPix(imgRotated, possiblePlate.rrLocationOfPlateInScene.MinAreaRect.Size, possiblePlate.rrLocationOfPlateInScene.Center, imgCropped)
         
         possiblePlate.imgPlate = imgCropped
         

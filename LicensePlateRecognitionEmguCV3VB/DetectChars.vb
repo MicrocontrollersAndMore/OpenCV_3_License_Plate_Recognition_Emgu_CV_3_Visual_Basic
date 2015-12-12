@@ -21,13 +21,13 @@ Module DetectChars
     
     ' module level variables ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
                                 'constants for checkIfPossibleChar, this checks one possible char only (does not compare to another char)
-    Const MIN_PIXEL_WIDTH As Long = 2
-    Const MIN_PIXEL_HEIGHT As Long = 8
+    Const MIN_PIXEL_WIDTH As Integer = 2
+    Const MIN_PIXEL_HEIGHT As Integer = 8
 
     Const MIN_ASPECT_RATIO As Double = 0.25
     Const MAX_ASPECT_RATIO As Double = 1.0
 
-    Const MIN_PIXEL_AREA As Long = 80
+    Const MIN_RECT_AREA As Integer = 80
 
                                 'constants for comparing two chars
     Const MIN_DIAG_SIZE_MULTIPLE_AWAY As Double = 0.3
@@ -54,58 +54,66 @@ Module DetectChars
     
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     Function loadKNNDataAndTrainKNN() As Boolean
-        Dim mtxClassifications As Matrix(Of Single) = New Matrix(Of Single)(1, 1)
-        Dim mtxTrainingImages As Matrix(Of Single) = New Matrix(Of Single)(1, 1)
+                'note: we effectively have to read the first XML file twice
+                'first, we read the file to get the number of rows (which is the same as the number of samples)
+                'the first time reading the file we can't get the data yet, since we don't know how many rows of data there are
+                'next, reinstantiate our classifications Matrix and training images Matrix with the correct number of rows
+                'then, read the file again and this time read the data into our resized classifications Matrix and training images Matrix
+
+        Dim mtxClassifications As Matrix(Of Single) = New Matrix(Of Single)(1, 1)           'for the first time through, declare these to be 1 row by 1 column
+        Dim mtxTrainingImages As Matrix(Of Single) = New Matrix(Of Single)(1, 1)            'we will resize these when we know the number of rows (i.e. number of training samples)
 
         Dim intValidChars As New List(Of Integer)(New Integer() { Asc("0"), Asc("1"), Asc("2"), Asc("3"), Asc("4"), Asc("5"), Asc("6"), Asc("7"), Asc("8"), Asc("9"), _
                                                                   Asc("A"), Asc("B"), Asc("C"), Asc("D"), Asc("E"), Asc("F"), Asc("G"), Asc("H"), Asc("I"), Asc("J"), _
                                                                   Asc("K"), Asc("L"), Asc("M"), Asc("N"), Asc("O"), Asc("P"), Asc("Q"), Asc("R"), Asc("S"), Asc("T"), _
                                                                   Asc("U"), Asc("V"), Asc("W"), Asc("X"), Asc("Y"), Asc("Z") } )
         
-        Dim xmlSerializer As XmlSerializer = New XmlSerializer(mtxClassifications.GetType)
-        Dim streamReader As StreamReader
+        Dim xmlSerializer As XmlSerializer = New XmlSerializer(mtxClassifications.GetType)              'these variables are for
+        Dim streamReader As StreamReader                                                                'reading from the XML files
 
         Try
-            streamReader = new StreamReader("classifications.xml")
-        Catch ex As Exception
+            streamReader = new StreamReader("classifications.xml")              'attempt to open classifications file
+        Catch ex As Exception                                                   'if error is encountered, show error and return
             frmMain.txtInfo.AppendText(vbCrLf + "unable to open 'classifications.xml', error: ")
             frmMain.txtInfo.AppendText(ex.Message + vbCrLf)
             Return False
         End Try
 
+                'read from the classifications file the 1st time, this is only to get the number of rows, not the actual data
         mtxClassifications = CType(xmlSerializer.Deserialize(streamReader), Matrix(Of Single))
 
-        streamReader.Close()
+        streamReader.Close()            'close the classifications XML file
 
-        Dim intNumberOfTrainingSamples As Integer = mtxClassifications.Rows
+        Dim intNumberOfTrainingSamples As Integer = mtxClassifications.Rows             'get the number of rows, i.e. the number of training samples
 
+                'now that we know the number of rows, reinstantiate classifications Matrix and training images Matrix with the actual number of rows
         mtxClassifications = New Matrix(Of Single)(intNumberOfTrainingSamples, 1)
         mtxTrainingImages = New Matrix(Of Single)(intNumberOfTrainingSamples, RESIZED_CHAR_IMAGE_WIDTH * RESIZED_CHAR_IMAGE_HEIGHT)
 
         Try
-            streamReader = new StreamReader("classifications.xml")
-        Catch ex As Exception
+            streamReader = new StreamReader("classifications.xml")              'reinitialize the stream reader
+        Catch ex As Exception                                                   'if error is encountered, show error and return
             frmMain.txtInfo.AppendText(vbCrLf + "unable to open 'classifications.xml', error:" + vbCrLf)
             frmMain.txtInfo.AppendText(ex.Message + vbCrLf + vbCrLf)
             Return False
         End Try
-
+                        'read from the classifications file again, this time we can get the actual data
         mtxClassifications = CType(xmlSerializer.Deserialize(streamReader), Matrix(Of Single))
 
-        streamReader.Close()
+        streamReader.Close()            'close the classifications XML file
 
-        xmlSerializer = New XmlSerializer(mtxTrainingImages.GetType)
+        xmlSerializer = New XmlSerializer(mtxTrainingImages.GetType)                'reinstantiate file reading variable
 
         Try
             streamReader = New StreamReader("images.xml")
-        Catch ex As Exception
+        Catch ex As Exception                                               'if error is encountered, show error and return
             frmMain.txtInfo.AppendText("unable to open 'images.xml', error:" + vbCrLf)
             frmMain.txtInfo.AppendText(ex.Message + vbCrLf + vbCrLf)
             Return False
         End Try
 
-        mtxTrainingImages = CType(xmlSerializer.Deserialize(streamReader), Matrix(Of Single))
-        streamReader.Close()
+        mtxTrainingImages = CType(xmlSerializer.Deserialize(streamReader), Matrix(Of Single))           'read from training images file
+        streamReader.Close()                                            'close the training images XML file
 
                     ' train '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
         
@@ -156,7 +164,7 @@ Module DetectChars
                     contours.Push(possibleChar.contour)
                 Next
 
-                CvInvoke.DrawContours(imgContours, contours, 0, SCALAR_WHITE)
+                CvInvoke.DrawContours(imgContours, contours, -1, SCALAR_WHITE)
 
                 CvInvoke.Imshow("6", imgContours)
                 
@@ -177,7 +185,7 @@ Module DetectChars
                     For Each matchingChar As PossibleChar In listOfMatchingChars
                         contours.Push(matchingChar.contour)
                     Next
-                    CvInvoke.DrawContours(imgContours, contours, 0, New MCvScalar(CDbl(intRandomBlue), CDbl(intRandomGreen), CDbl(intRandomRed)))
+                    CvInvoke.DrawContours(imgContours, contours, -1, New MCvScalar(CDbl(intRandomBlue), CDbl(intRandomGreen), CDbl(intRandomRed)))
                 Next
 
                 CvInvoke.Imshow("7", imgContours)
@@ -227,14 +235,14 @@ Module DetectChars
                     For Each matchingChar As PossibleChar In listOfMatchingChars
                         contours.Push(matchingChar.contour)
                     Next
-                    CvInvoke.DrawContours(imgContours, contours, 0, New MCvScalar(CDbl(intRandomBlue), CDbl(intRandomGreen), CDbl(intRandomRed)))
+                    CvInvoke.DrawContours(imgContours, contours, -1, New MCvScalar(CDbl(intRandomBlue), CDbl(intRandomGreen), CDbl(intRandomRed)))
                 Next
                 CvInvoke.Imshow("8", imgContours)
             End If
-
+                            'within each possible plate, suppose the longest list of potential matching chars is the actual list of chars
             Dim intLenOfLongestListOfChars As Integer = 0
             Dim intIndexOfLongestListOfChars As Integer = 0
-
+                                                            'loop through all the lists of matching chars, get the index of the one with the most chars
             For i As Integer = 0 To listOfListsOfMatchingCharsInPlate.Count - 1
                 If (listOfListsOfMatchingCharsInPlate(i).Count > intLenOfLongestListOfChars) Then
                     intLenOfLongestListOfChars = listOfListsOfMatchingCharsInPlate(i).Count
@@ -253,7 +261,7 @@ Module DetectChars
                     contours.Push(matchingChar.contour)
                 Next
 
-                CvInvoke.DrawContours(imgContours, contours, 0, SCALAR_WHITE)
+                CvInvoke.DrawContours(imgContours, contours, -1, SCALAR_WHITE)
 
                 CvInvoke.Imshow("9", imgContours)
             End If
@@ -301,7 +309,7 @@ Module DetectChars
     
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     Function checkIfPossibleChar(possibleChar As PossibleChar) As Boolean
-        If (possibleChar.intArea > MIN_PIXEL_AREA And _
+        If (possibleChar.intRectArea > MIN_RECT_AREA And _
             possibleChar.boundingRect.Width > MIN_PIXEL_WIDTH And possibleChar.boundingRect.Height > MIN_PIXEL_HEIGHT And _
             MIN_ASPECT_RATIO < possibleChar.dblAspectRatio And possibleChar.dblAspectRatio < MAX_ASPECT_RATIO) Then
             Return True
@@ -330,7 +338,7 @@ Module DetectChars
 
             Dim recursiveListOfListsOfMatchingChars As List(Of List(Of PossibleChar)) = New List(Of List(Of PossibleChar))
 
-            recursiveListOfListsOfMatchingChars = findListOfListsOfMatchingChars(listOfPossibleCharsWithCurrentMatchesRemoved)
+            recursiveListOfListsOfMatchingChars = findListOfListsOfMatchingChars(listOfPossibleCharsWithCurrentMatchesRemoved)      'recursive call
 
             For Each recursiveListOfMatchingChars As List(Of PossibleChar) In recursiveListOfListsOfMatchingChars
                 listOfListsOfMatchingChars.Add(recursiveListOfMatchingChars)
@@ -355,7 +363,7 @@ Module DetectChars
 
             Dim dblAngleBetweenChars As Double = angleBetweenChars(possibleChar, possibleMatchingChar)
 
-            Dim dblChangeInArea As Double = Math.Abs(possibleMatchingChar.intArea - possibleChar.intArea) / possibleChar.intArea
+            Dim dblChangeInArea As Double = Math.Abs(possibleMatchingChar.intRectArea - possibleChar.intRectArea) / possibleChar.intRectArea
             
             Dim dblChangeInWidth As Double = Math.Abs(possibleMatchingChar.boundingRect.Width - possibleChar.boundingRect.Width) / possibleChar.boundingRect.Width
             Dim dblChangeInHeight As Double = Math.Abs(possibleMatchingChar.boundingRect.Height - possibleChar.boundingRect.Height) / possibleChar.boundingRect.Height
@@ -376,10 +384,10 @@ Module DetectChars
 
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     Function distanceBetweenChars(firstChar As PossibleChar, secondChar As PossibleChar) As Double
-        Dim lngX As Long = Math.Abs(firstChar.intCenterX - secondChar.intCenterX)
-        Dim lngY As Long = Math.Abs(firstChar.intCenterY - secondChar.intCenterY)
+        Dim intX As Integer = Math.Abs(firstChar.intCenterX - secondChar.intCenterX)
+        Dim intY As Integer = Math.Abs(firstChar.intCenterY - secondChar.intCenterY)
 
-        Return Math.Sqrt((lngX ^ 2) + (lngY ^ 2))
+        Return Math.Sqrt((intX ^ 2) + (intY ^ 2))
     End Function
     
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -402,10 +410,10 @@ Module DetectChars
             For Each otherChar As PossibleChar In listOfMatchingChars
                 If (Not currentChar.Equals(otherChar)) Then                                     'if current char and other char are not the same char . . .
                                                                                                 'if current char and other char have center points at almost the same location . . .
-                    If (distanceBetweenChars(currentChar, otherChar) < currentChar.dblDiagonalSize * MIN_DIAG_SIZE_MULTIPLE_AWAY) Then
+                    If (distanceBetweenChars(currentChar, otherChar) < (currentChar.dblDiagonalSize * MIN_DIAG_SIZE_MULTIPLE_AWAY)) Then
                                         'if we get in here we have found overlapping chars
                                         'next we identify which char is smaller, then if that char was not already removed on a previous pass, remove it
-                        If (currentChar.intArea < otherChar.intArea) Then                               'if current char is smaller than other char
+                        If (currentChar.intRectArea < otherChar.intRectArea) Then                       'if current char is smaller than other char
                             If (listOfMatchingCharsWithInnerCharRemoved.Contains(currentChar)) Then     'if current char was not already removed on a previous pass . . .
                                 listOfMatchingCharsWithInnerCharRemoved.Remove(currentChar)             'then remove current char
                             End If
@@ -470,3 +478,4 @@ Module DetectChars
     End Function
     
 End Module
+
