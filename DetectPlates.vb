@@ -33,20 +33,22 @@ Module DetectPlates
 
         CvInvoke.DestroyAllWindows()
 
-        If (frmMain.cbShowSteps.Checked = True) Then
+        If (frmMain.cbShowSteps.Checked = True) Then ' show steps '''''''''''''''''''''''''''''''''
             CvInvoke.Imshow("0", imgOriginalScene)
-        End If
+        End If ' show steps '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-        Preprocess.preprocess(imgOriginalScene, imgGrayscaleScene, imgThreshScene)
+        Preprocess.preprocess(imgOriginalScene, imgGrayscaleScene, imgThreshScene)          'preprocess to get grayscale and threshold images
 
-        If (frmMain.cbShowSteps.Checked = True) Then
+        If (frmMain.cbShowSteps.Checked = True) Then ' show steps '''''''''''''''''''''''''''''''''
             CvInvoke.Imshow("1a", imgGrayscaleScene)
             CvInvoke.Imshow("1b", imgThreshScene)
-        End If
+        End If ' show steps '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
+                'find all possible chars in the scene,
+                'this function first finds all contours, then only includes contours that could be chars (without comparison to other chars yet)
         Dim listOfPossibleCharsInScene As List(Of PossibleChar) = findPossibleCharsInScene(imgThreshScene)
 
-        If (frmMain.cbShowSteps.Checked = True) Then
+        If (frmMain.cbShowSteps.Checked = True) Then ' show steps '''''''''''''''''''''''''''''''''
             frmMain.txtInfo.AppendText("step 2 - listOfPossibleCharsInScene.Count = " + listOfPossibleCharsInScene.Count.ToString + vbCrLf)     '131 with MCLRNF1 image
 
             Dim contours As New VectorOfVectorOfPoint()
@@ -57,11 +59,13 @@ Module DetectPlates
 
             CvInvoke.DrawContours(imgContours, contours, -1, SCALAR_WHITE)
             CvInvoke.Imshow("2b", imgContours)
-        End If
+        End If ' show steps '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
+                'given a list of all possible chars, find groups of matching chars
+                'in the next steps each group of matching chars will attempt to be recognized as a plate
         Dim listOfListsOfMatchingCharsInScene As List(Of List(Of PossibleChar)) = findListOfListsOfMatchingChars(listOfPossibleCharsInScene)
 
-        If (frmMain.cbShowSteps.Checked = True) Then
+        If (frmMain.cbShowSteps.Checked = True) Then ' show steps '''''''''''''''''''''''''''''''''
             frmMain.txtInfo.AppendText("step 3 - listOfListsOfMatchingCharsInScene.Count = " + listOfListsOfMatchingCharsInScene.Count.ToString + vbCrLf)     '13 with MCLRNF1 image
             
             imgContours = New Mat(imgOriginalScene.Size, DepthType.Cv8U, 3)
@@ -81,19 +85,19 @@ Module DetectPlates
                 
             Next
             CvInvoke.Imshow("3", imgContours)
-        End If
+        End If ' show steps '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-        For Each listOfMatchingChars As List(Of PossibleChar) In listOfListsOfMatchingCharsInScene
-            Dim possiblePlate = extractPlate(imgOriginalScene, listOfMatchingChars)
+        For Each listOfMatchingChars As List(Of PossibleChar) In listOfListsOfMatchingCharsInScene          'for each group of matching chars
+            Dim possiblePlate = extractPlate(imgOriginalScene, listOfMatchingChars)                         'attempt to extract plate
 
-            If (Not possiblePlate.imgPlate Is Nothing) Then
-                listOfPossiblePlates.Add(possiblePlate)
+            If (Not possiblePlate.imgPlate Is Nothing) Then                                                 'if plate was found
+                listOfPossiblePlates.Add(possiblePlate)                                                     'add to list of possible plates
             End If
         Next
 
-        frmMain.txtInfo.AppendText(vbCrLf + listOfPossiblePlates.Count.ToString + " possible plates found" + vbCrLf)
+        frmMain.txtInfo.AppendText(vbCrLf + listOfPossiblePlates.Count.ToString + " possible plates found" + vbCrLf)    'update text box with # of plates found
 
-        If (frmMain.cbShowSteps.Checked = True) Then
+        If (frmMain.cbShowSteps.Checked = True) Then ' show steps '''''''''''''''''''''''''''''''''
             frmMain.txtInfo.AppendText(vbCrLf)
             CvInvoke.Imshow("4a", imgContours)
 
@@ -119,7 +123,7 @@ Module DetectPlates
             Next
             frmMain.txtInfo.AppendText(vbCrLf + "plate detection complete, click on any image and press a key to begin char recognition . . ." + vbCrLf + vbCrLf)
             CvInvoke.WaitKey(0)
-        End If
+        End If ' show steps '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
         
         Return listOfPossiblePlates
     End Function
@@ -135,27 +139,27 @@ Module DetectPlates
 
         Dim contours As New VectorOfVectorOfPoint()
 
-        CvInvoke.FindContours(imgThreshCopy, contours, Nothing, RetrType.List, ChainApproxMethod.ChainApproxSimple)
+        CvInvoke.FindContours(imgThreshCopy, contours, Nothing, RetrType.List, ChainApproxMethod.ChainApproxSimple)     'find all contours
 
-        For i As Integer = 0 To contours.Size() - 1
-            If (frmMain.cbShowSteps.Checked = True) Then
+        For i As Integer = 0 To contours.Size() - 1                                                     'for each contour
+            If (frmMain.cbShowSteps.Checked = True) Then ' show steps '''''''''''''''''''''''''''''
                 CvInvoke.DrawContours(imgContours, contours, i, SCALAR_WHITE)
-            End If
+            End If ' show steps '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
             
             Dim possibleChar As New PossibleChar(contours(i))
 
-            If (DetectChars.checkIfPossibleChar(possibleChar)) Then
-                intCountOfPossibleChars = intCountOfPossibleChars + 1
-                listOfPossibleChars.Add(possibleChar)
+            If (DetectChars.checkIfPossibleChar(possibleChar)) Then         'if contour is a possible char, note this does not compare to other chars (yet) . . .
+                intCountOfPossibleChars = intCountOfPossibleChars + 1       'increment count of possible chars
+                listOfPossibleChars.Add(possibleChar)                       'and add to list of possible chars
             End If
             
         Next
 
-        If (frmMain.cbShowSteps.Checked = True) Then
+        If (frmMain.cbShowSteps.Checked = True) Then ' show steps '''''''''''''''''''''''''''''''''
             frmMain.txtInfo.AppendText(vbCrLf + "step 2 - contours.Size() = " + contours.Size().ToString + vbCrLf)      '2362 with MCLRNF1 image
             frmMain.txtInfo.AppendText("step 2 - intCountOfPossibleChars = " + intCountOfPossibleChars.ToString + vbCrLf)     '131 with MCLRNF1 image
             CvInvoke.imshow("2a", imgContours)
-        End If
+        End If ' show steps '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
         
         Return listOfPossibleChars
     End Function
@@ -191,19 +195,21 @@ Module DetectPlates
         Dim dblCorrectionAngleInRad As Double = Math.Asin(dblOpposite / dblHypotenuse)
         Dim dblCorrectionAngleInDeg As Double = dblCorrectionAngleInRad * (180.0 / Math.PI)
 
+                            'assign rotated rect member variable of possible plate
         possiblePlate.rrLocationOfPlateInScene = New RotatedRect(ptfPlateCenter, New SizeF(CSng(intPlateWidth), CSng(intPlateHeight)), CSng(dblCorrectionAngleInDeg))
 
-        Dim rotationMatrix As New Mat()
+        Dim rotationMatrix As New Mat()         'final steps are to perform the actual rotation
         Dim imgRotated As New Mat()
         Dim imgCropped As New Mat()
         
-        CvInvoke.GetRotationMatrix2D(ptfPlateCenter, dblCorrectionAngleInDeg, 1.0, rotationMatrix)
+        CvInvoke.GetRotationMatrix2D(ptfPlateCenter, dblCorrectionAngleInDeg, 1.0, rotationMatrix)      'get the rotation matrix for our calculated correction angle
 
-        CvInvoke.WarpAffine(imgOriginal, imgRotated, rotationMatrix, imgOriginal.Size)
+        CvInvoke.WarpAffine(imgOriginal, imgRotated, rotationMatrix, imgOriginal.Size)          'rotate the entire image
         
+                            'crop out the actual plate portion of the rotated image
         CvInvoke.GetRectSubPix(imgRotated, possiblePlate.rrLocationOfPlateInScene.MinAreaRect.Size, possiblePlate.rrLocationOfPlateInScene.Center, imgCropped)
         
-        possiblePlate.imgPlate = imgCropped
+        possiblePlate.imgPlate = imgCropped         'copy the cropped plate image into the applicable member variable of the possible plate
         
         Return possiblePlate
     End Function

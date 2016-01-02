@@ -121,7 +121,7 @@ Module DetectChars
 
         kNearest.Train(mtxTrainingImages, MlEnum.DataLayoutType.RowSample, mtxClassifications)
         
-        Return True
+        Return True         'if we got here training was successful so return true
     End Function
 
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -137,26 +137,28 @@ Module DetectChars
         End If
                         'at this point we can be sure list of possible plates has at least one plate
 
-        For Each possiblePlate As PossiblePlate In listOfPossiblePlates
-            Preprocess.preprocess(possiblePlate.imgPlate, possiblePlate.imgGrayscale, possiblePlate.imgThresh)
+        For Each possiblePlate As PossiblePlate In listOfPossiblePlates     ' for each possible plate, this is a big for loop that takes up most of the function
+            Preprocess.preprocess(possiblePlate.imgPlate, possiblePlate.imgGrayscale, possiblePlate.imgThresh)      'preprocess to get grayscale and threshold images
 
-            If (frmMain.cbShowSteps.Checked = True) Then
+            If (frmMain.cbShowSteps.Checked = True) Then ' show steps '''''''''''''''''''''''''''''
                 CvInvoke.Imshow("5a", possiblePlate.imgPlate)
                 CvInvoke.Imshow("5b", possiblePlate.imgGrayscale)
                 CvInvoke.Imshow("5c", possiblePlate.imgThresh)
-            End If
+            End If ' show steps '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-            CvInvoke.Resize(possiblePlate.imgThresh, possiblePlate.imgThresh, New Size(), 1.6, 1.6)
+            CvInvoke.Resize(possiblePlate.imgThresh, possiblePlate.imgThresh, New Size(), 1.6, 1.6)     'upscale size by 60% for better viewing and character recognition
 
-            CvInvoke.Threshold(possiblePlate.imgThresh, possiblePlate.imgThresh, 0.0, 255.0, ThresholdType.Binary Or ThresholdType.Otsu)
+            CvInvoke.Threshold(possiblePlate.imgThresh, possiblePlate.imgThresh, 0.0, 255.0, ThresholdType.Binary Or ThresholdType.Otsu)    'threshold again to eliminate any gray areas
 
-            If (frmMain.cbShowSteps.Checked = True) Then
+            If (frmMain.cbShowSteps.Checked = True) Then ' show steps '''''''''''''''''''''''''''''
                 CvInvoke.Imshow("5d", possiblePlate.imgThresh)
-            End If
+            End If ' show steps '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
+                    'find all possible chars in the plate,
+                    'this function first finds all contours, then only includes contours that could be chars (without comparison to other chars yet)
             Dim listOfPossibleCharsInPlate As List(Of PossibleChar) = findPossibleCharsInPlate(possiblePlate.imgGrayscale, possiblePlate.imgThresh)
 
-            If (frmMain.cbShowSteps.Checked = True) Then
+            If (frmMain.cbShowSteps.Checked = True) Then ' show steps '''''''''''''''''''''''''''''
                 imgContours = New Mat(possiblePlate.imgThresh.Size, DepthType.Cv8U, 3)
                 Dim contours As New VectorOfVectorOfPoint()
 
@@ -168,11 +170,12 @@ Module DetectChars
 
                 CvInvoke.Imshow("6", imgContours)
                 
-            End If
+            End If ' show steps '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
+                    'given a list of all possible chars, find groups of matching chars within the plate
             Dim listOfListsOfMatchingCharsInPlate As List(Of List(Of PossibleChar)) = findListOfListsOfMatchingChars(listOfPossibleCharsInPlate)
 
-            If (frmMain.cbShowSteps.Checked = True) Then
+            If (frmMain.cbShowSteps.Checked = True) Then ' show steps '''''''''''''''''''''''''''''
                 imgContours = New Mat(possiblePlate.imgThresh.Size, DepthType.Cv8U, 3)
 
                 Dim contours As New VectorOfVectorOfPoint()
@@ -189,40 +192,44 @@ Module DetectChars
                 Next
 
                 CvInvoke.Imshow("7", imgContours)
-            End If
+            End If ' show steps '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-            If (listOfListsOfMatchingCharsInPlate Is Nothing) Then
-                If (frmMain.cbShowSteps.Checked = True) Then
+            If (listOfListsOfMatchingCharsInPlate Is Nothing) Then          'if no matching chars were found
+                If (frmMain.cbShowSteps.Checked = True) Then ' show steps '''''''''''''''''''''''''
                     frmMain.txtInfo.AppendText("chars found in plate number " + intPlateCounter.ToString + " = (none), click on any image and press a key to continue . . ." + vbCrLf)
                     intPlateCounter = intPlateCounter + 1
                     CvInvoke.DestroyWindow("8")
                     CvInvoke.DestroyWindow("9")
                     CvInvoke.DestroyWindow("10")
                     CvInvoke.WaitKey(0)
-                End If
+                End If ' show steps '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-                possiblePlate.strChars = ""
-                Continue For
+                possiblePlate.strChars = ""             'set plate string member variable to empty string
+                Continue For                            'and jump back to top of big for loop
             ElseIf (listOfListsOfMatchingCharsInPlate.Count = 0) Then
-                If (frmMain.cbShowSteps.Checked = True) Then
+                If (frmMain.cbShowSteps.Checked = True) Then ' show steps '''''''''''''''''''''''''
                     frmMain.txtInfo.AppendText("chars found in plate number " + intPlateCounter.ToString + " = (none), click on any image and press a key to continue . . ." + vbCrLf)
                     intPlateCounter = intPlateCounter + 1
                     CvInvoke.DestroyWindow("8")
                     CvInvoke.DestroyWindow("9")
                     CvInvoke.DestroyWindow("10")
                     CvInvoke.WaitKey(0)
-                End If
+                End If ' show steps '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-                possiblePlate.strChars = ""
-                Continue For
+                possiblePlate.strChars = ""             'set plate string member variable to empty string
+                Continue For                            'and jump back to top of big for loop
             End If
 
-            For i As Integer = 0 To listOfListsOfMatchingCharsInPlate.Count - 1
+            For i As Integer = 0 To listOfListsOfMatchingCharsInPlate.Count - 1         'for each group of chars within the plate
+
+                            'sort chars from left to right
                 listOfListsOfMatchingCharsInPlate(i).Sort(Function(oneChar, otherChar) oneChar.boundingRect.X.CompareTo(otherChar.boundingRect.X))
+
+                            'remove inner overlapping chars
                 listOfListsOfMatchingCharsInPlate(i) = removeInnerOverlappingChars(listOfListsOfMatchingCharsInPlate(i))
             Next
 
-            If (frmMain.cbShowSteps.Checked = True) Then
+            If (frmMain.cbShowSteps.Checked = True) Then ' show steps '''''''''''''''''''''''''''''
                 imgContours = New Mat(possiblePlate.imgThresh.Size, DepthType.Cv8U, 3)
 
                 For Each listOfMatchingChars As List(Of PossibleChar) In listOfListsOfMatchingCharsInPlate
@@ -238,7 +245,8 @@ Module DetectChars
                     CvInvoke.DrawContours(imgContours, contours, -1, New MCvScalar(CDbl(intRandomBlue), CDbl(intRandomGreen), CDbl(intRandomRed)))
                 Next
                 CvInvoke.Imshow("8", imgContours)
-            End If
+            End If ' show steps '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
                             'within each possible plate, suppose the longest list of potential matching chars is the actual list of chars
             Dim intLenOfLongestListOfChars As Integer = 0
             Dim intIndexOfLongestListOfChars As Integer = 0
@@ -250,9 +258,10 @@ Module DetectChars
                 End If
             Next
 
+                        'suppose that the longest list of matching chars within the plate is the actual list of chars
             Dim longestListOfMatchingCharsInPlate As List(Of PossibleChar) = listOfListsOfMatchingCharsInPlate(intIndexOfLongestListOfChars)
 
-            If (frmMain.cbShowSteps.Checked = True) Then
+            If (frmMain.cbShowSteps.Checked = True) Then ' show steps '''''''''''''''''''''''''''''
                 imgContours = New Mat(possiblePlate.imgThresh.Size, DepthType.Cv8U, 3)
 
                 Dim contours As New VectorOfVectorOfPoint()
@@ -264,21 +273,21 @@ Module DetectChars
                 CvInvoke.DrawContours(imgContours, contours, -1, SCALAR_WHITE)
 
                 CvInvoke.Imshow("9", imgContours)
-            End If
+            End If ' show steps '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-            possiblePlate.strChars = recognizeCharsInPlate(possiblePlate.imgThresh, longestListOfMatchingCharsInPlate)
+            possiblePlate.strChars = recognizeCharsInPlate(possiblePlate.imgThresh, longestListOfMatchingCharsInPlate)      'perform char recognition on the longest list of matching chars in the plate
 
-            If (frmMain.cbShowSteps.Checked = True) Then
+            If (frmMain.cbShowSteps.Checked = True) Then ' show steps '''''''''''''''''''''''''''''
                 frmMain.txtInfo.AppendText("chars found in plate number " + intPlateCounter.ToString + " = " + possiblePlate.strChars + ", click on any image and press a key to continue . . ." + vbCrLf)
                 intPlateCounter = intPlateCounter + 1
                 CvInvoke.WaitKey(0)
-            End If
-        Next
+            End If ' show steps '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+        Next        'end for each possible plate big for loop that takes up most of the function
         
-        If (frmMain.cbShowSteps.Checked = True) Then
+        If (frmMain.cbShowSteps.Checked = True) Then ' show steps '''''''''''''''''''''''''''''''''
             frmMain.txtInfo.AppendText(vbCrLf + "char detection complete, click on any image and press a key to continue . . ." + vbCrLf)
             CvInvoke.WaitKey(0)
-        End If
+        End If ' show steps '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
         
         Return listOfPossiblePlates
     End Function
@@ -293,13 +302,13 @@ Module DetectChars
 
         imgThreshCopy = imgThresh.Clone()
 
-        CvInvoke.FindContours(imgThreshCopy, contours, Nothing, RetrType.List, ChainApproxMethod.ChainApproxSimple)
+        CvInvoke.FindContours(imgThreshCopy, contours, Nothing, RetrType.List, ChainApproxMethod.ChainApproxSimple)     'find all contours in plate
 
-        For i As Integer = 0 To contours.Size - 1
+        For i As Integer = 0 To contours.Size - 1                   'for each contour
             Dim possibleChar As New PossibleChar(contours(i))
 
-            If (checkIfPossibleChar(possibleChar)) Then
-                listOfPossibleChars.Add(possibleChar)
+            If (checkIfPossibleChar(possibleChar)) Then             'if contour is a possible char, note this does not compare to other chars (yet) . . .
+                listOfPossibleChars.Add(possibleChar)               'add to list of possible chars
             End If
 
         Next
@@ -309,6 +318,8 @@ Module DetectChars
     
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     Function checkIfPossibleChar(possibleChar As PossibleChar) As Boolean
+                'this function is a 'first pass' that does a rough check on a contour to see if it could be a char,
+                'note that we are not (yet) comparing the char to other chars to look for a group
         If (possibleChar.intRectArea > MIN_RECT_AREA And _
             possibleChar.boundingRect.Width > MIN_PIXEL_WIDTH And possibleChar.boundingRect.Height > MIN_PIXEL_HEIGHT And _
             MIN_ASPECT_RATIO < possibleChar.dblAspectRatio And possibleChar.dblAspectRatio < MAX_ASPECT_RATIO) Then
@@ -320,45 +331,58 @@ Module DetectChars
     
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     Function findListOfListsOfMatchingChars(listOfPossibleChars As List(Of PossibleChar)) As List(Of List(Of PossibleChar))
+                'with this function, we start off with all the possible chars in one big list
+                'the purpose of this function is to re-arrange the one big list of chars into a list of lists of matching chars,
+                'note that chars that are not found to be in a group of matches do not need to be considered further
         Dim listOfListsOfMatchingChars As List(Of List(Of PossibleChar)) = New List(Of List(Of PossibleChar))       'this will be the return value
-
-        For Each possibleChar As PossibleChar In listOfPossibleChars
-
+        
+        For Each possibleChar As PossibleChar In listOfPossibleChars        'for each possible char in the one big list of chars
+            
+                    'find all chars in the big list that match the current char
             Dim listOfMatchingChars As List(Of PossibleChar) = findListOfMatchingChars(possibleChar, listOfPossibleChars)
 
-            listOfMatchingChars.Add(possibleChar)
+            listOfMatchingChars.Add(possibleChar)       'also add the current char to current possible list of matching chars
 
+                    'if current possible list of matching chars is not long enough to constitute a possible plate
             If (listOfMatchingChars.Count < MIN_NUMBER_OF_MATCHING_CHARS) Then
-                Continue For
+                Continue For                    'jump back to the top of the for loop and try again with next char, note that it's not necessary
+                                                'to save the list in any way since it did not have enough chars to be a possible plate
             End If
-
-            listOfListsOfMatchingChars.Add(listOfMatchingChars)
-
+                                                                    'if we get here, the current list passed test as a "group" or "cluster" of matching chars
+            listOfListsOfMatchingChars.Add(listOfMatchingChars)     'so add to our list of lists of matching chars
+            
+                    'remove the current list of matching chars from the big list so we don't use those same chars twice,
+                    'make sure to make a new big list for this since we don't want to change the original big list
             Dim listOfPossibleCharsWithCurrentMatchesRemoved As List(Of PossibleChar) = listOfPossibleChars.Except(listOfMatchingChars).ToList()
 
+                    'declare new list of lists of chars to get result from recursive call
             Dim recursiveListOfListsOfMatchingChars As List(Of List(Of PossibleChar)) = New List(Of List(Of PossibleChar))
 
             recursiveListOfListsOfMatchingChars = findListOfListsOfMatchingChars(listOfPossibleCharsWithCurrentMatchesRemoved)      'recursive call
 
-            For Each recursiveListOfMatchingChars As List(Of PossibleChar) In recursiveListOfListsOfMatchingChars
-                listOfListsOfMatchingChars.Add(recursiveListOfMatchingChars)
+            For Each recursiveListOfMatchingChars As List(Of PossibleChar) In recursiveListOfListsOfMatchingChars       'for each list of matching chars found by recursive call
+                listOfListsOfMatchingChars.Add(recursiveListOfMatchingChars)                'add to our original list of lists of matching chars
             Next
-            Exit For
+            Exit For                'jump out of for loop
         Next
 
-        Return listOfListsOfMatchingChars
+        Return listOfListsOfMatchingChars           'return result
     End Function
     
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     Function findListOfMatchingChars(possibleChar As PossibleChar, listOfChars As List(Of PossibleChar)) As List(Of PossibleChar)
+                'the purpose of this function is, given a possible char and a big list of possible chars,
+                'find all chars in the big list that are a match for the single possible char, and return those matching chars as a list
         Dim listOfMatchingChars As List(Of PossibleChar) = New List(Of PossibleChar)            'this will be the return value
 
-        For Each possibleMatchingChar As PossibleChar In listOfChars
-
+        For Each possibleMatchingChar As PossibleChar In listOfChars        'for each char in big list
+            
+                            'if the char we attempting to find matches for is the exact same char as the char in the big list we are currently checking
             If (possibleMatchingChar.Equals(possibleChar)) Then
-                Continue For
+                                    'then we should not include it in the list of matches b/c that would end up double including the current char
+                Continue For        'so do not add to list of matches and jump back to top of for loop
             End If
-
+                        'compute stuff to see if chars are a match
             Dim dblDistanceBetweenChars As Double = distanceBetweenChars(possibleChar, possibleMatchingChar)
 
             Dim dblAngleBetweenChars As Double = angleBetweenChars(possibleChar, possibleMatchingChar)
@@ -367,22 +391,24 @@ Module DetectChars
             
             Dim dblChangeInWidth As Double = Math.Abs(possibleMatchingChar.boundingRect.Width - possibleChar.boundingRect.Width) / possibleChar.boundingRect.Width
             Dim dblChangeInHeight As Double = Math.Abs(possibleMatchingChar.boundingRect.Height - possibleChar.boundingRect.Height) / possibleChar.boundingRect.Height
-
+            
+                    'check if chars match
             If (dblDistanceBetweenChars < (possibleChar.dblDiagonalSize * MAX_DIAG_SIZE_MULTIPLE_AWAY) And _
                 dblAngleBetweenChars < MAX_ANGLE_BETWEEN_CHARS And _
                 dblChangeInArea < MAX_CHANGE_IN_AREA And _
                 dblChangeInWidth < MAX_CHANGE_IN_WIDTH And _
                 dblChangeInHeight < MAX_CHANGE_IN_HEIGHT) Then
 
-                listOfMatchingChars.Add(possibleMatchingChar)
+                listOfMatchingChars.Add(possibleMatchingChar)       'if the chars are a match, add the current char to list of matching chars
             End If
             
         Next
         
-        Return listOfMatchingChars
+        Return listOfMatchingChars          'return result
     End Function
 
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    'use Pythagorean theorem to calculate distance between two chars
     Function distanceBetweenChars(firstChar As PossibleChar, secondChar As PossibleChar) As Double
         Dim intX As Integer = Math.Abs(firstChar.intCenterX - secondChar.intCenterX)
         Dim intY As Integer = Math.Abs(firstChar.intCenterY - secondChar.intCenterY)
@@ -391,6 +417,7 @@ Module DetectChars
     End Function
     
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    'use basic trigonometry (SOH CAH TOA) to calculate angle between chars
     Function angleBetweenChars(firstChar As PossibleChar, secondChar As PossibleChar) As Double
         Dim dblAdj As Double = CDbl(Math.Abs(firstChar.intCenterX - secondChar.intCenterX))
         Dim dblOpp As Double = CDbl(Math.Abs(firstChar.intCenterY - secondChar.intCenterY))
@@ -403,6 +430,9 @@ Module DetectChars
     End Function
     
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    'if we have two chars overlapping or to close to each other to possibly be separate chars, remove the inner (smaller) char,
+    'this is to prevent including the same char twice if two contours are found for the same char,
+    'for example for the letter 'O' both the inner ring and the outer ring may be found as contours, but we should only include the char once
     Function removeInnerOverlappingChars(listOfMatchingChars As List(Of PossibleChar)) As List(Of PossibleChar)
         Dim listOfMatchingCharsWithInnerCharRemoved As List(Of PossibleChar) = New List(Of PossibleChar)(listOfMatchingChars)
 
@@ -432,32 +462,37 @@ Module DetectChars
     End Function
 
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    'this is where we apply the actual char recognition
     Function recognizeCharsInPlate(imgThresh As Mat, listOfMatchingChars As List(Of PossibleChar)) As String
         Dim strChars As String = ""         'this will be the return value, the chars in the lic plate
 
         Dim imgThreshColor As New Mat()
 
-        listOfMatchingChars.Sort(Function(oneChar, otherChar) oneChar.boundingRect.X.CompareTo(otherChar.boundingRect.X))
+        listOfMatchingChars.Sort(Function(oneChar, otherChar) oneChar.boundingRect.X.CompareTo(otherChar.boundingRect.X))   'sort chars from left to right
 
         CvInvoke.CvtColor(imgThresh, imgThreshColor, ColorConversion.Gray2Bgr)
 
-        For Each currentChar As PossibleChar In listOfMatchingChars
-            CvInvoke.Rectangle(imgThreshColor, currentChar.boundingRect, SCALAR_GREEN, 2)
+        For Each currentChar As PossibleChar In listOfMatchingChars                                 'for each char in plate
+            CvInvoke.Rectangle(imgThreshColor, currentChar.boundingRect, SCALAR_GREEN, 2)           'draw green box around the char
 
-            Dim imgROItoBeCloned As New Mat(imgThresh, currentChar.boundingRect)
+            Dim imgROItoBeCloned As New Mat(imgThresh, currentChar.boundingRect)            'get ROI image of bounding rect
 
-            Dim imgROI As Mat = imgROItoBeCloned.Clone()
+            Dim imgROI As Mat = imgROItoBeCloned.Clone()            'clone ROI image so we don't change original when we resize
 
             Dim imgROIResized As New Mat()
 
+                    'resize image, this is necessary for char recognition
             CvInvoke.Resize(imgROI, imgROIResized, New Size(RESIZED_CHAR_IMAGE_WIDTH, RESIZED_CHAR_IMAGE_HEIGHT))
 
+                    'declare a Matrix of the same dimensions as the Image we are adding to the data structure of training images
             Dim mtxTemp As Matrix(Of Single) = New Matrix(Of Single)(imgROIResized.Size())
+
+                    'declare a flattened (only 1 row) matrix of the same total size
             Dim mtxTempReshaped As Matrix(Of Single) = New Matrix(Of Single)(1, RESIZED_CHAR_IMAGE_WIDTH * RESIZED_CHAR_IMAGE_HEIGHT)
 
-            imgROIResized.ConvertTo(mtxTemp, DepthType.Cv32F)
+            imgROIResized.ConvertTo(mtxTemp, DepthType.Cv32F)       'convert Image to a Matrix of Singles with the same dimensions
 
-            For intRow As Integer = 0 To RESIZED_CHAR_IMAGE_HEIGHT - 1
+            For intRow As Integer = 0 To RESIZED_CHAR_IMAGE_HEIGHT - 1          'flatten Matrix into one row by RESIZED_IMAGE_WIDTH * RESIZED_IMAGE_HEIGHT number of columns
                 For intCol As Integer = 0 To RESIZED_CHAR_IMAGE_WIDTH - 1
                     mtxTempReshaped(0, (intRow * RESIZED_CHAR_IMAGE_WIDTH) + intCol) = mtxTemp(intRow, intCol)
                 Next
@@ -465,16 +500,16 @@ Module DetectChars
 
             Dim sngCurrentChar As Single
 
-            sngCurrentChar = kNearest.Predict(mtxTempReshaped)
+            sngCurrentChar = kNearest.Predict(mtxTempReshaped)      'finally we can call Predict !!!
 
-            strChars = strChars + Chr(Convert.ToInt32(sngCurrentChar))
+            strChars = strChars + Chr(Convert.ToInt32(sngCurrentChar))      'append current char to full string of chars
         Next
 
-        If (frmMain.cbShowSteps.Checked = True) Then
+        If (frmMain.cbShowSteps.Checked = True) Then ' show steps '''''''''''''''''''''''''''''''''
             CvInvoke.Imshow("10", imgThreshColor)
-        End If
+        End If ' show steps '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
         
-        Return strChars
+        Return strChars         'return result
     End Function
     
 End Module

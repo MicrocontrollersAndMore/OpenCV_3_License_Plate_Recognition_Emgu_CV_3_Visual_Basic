@@ -34,7 +34,7 @@ Public Class frmMain
     Dim SCALAR_YELLOW As New MCvScalar(0.0, 255.0, 255.0)
 
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    Private Sub frmMain_Load(sender As Object, e As EventArgs) Handles MyBase.Load  
+    Private Sub frmMain_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         cbShowSteps_CheckedChanged(New Object, New EventArgs)                           'call check box event to update form based on check box initial state
 
         Dim blnKNNTrainingSuccessful As Boolean = loadKNNDataAndTrainKNN()              'attempt KNN training
@@ -45,11 +45,10 @@ Public Class frmMain
             btnOpenFile.Enabled = False                                                         'disable open file button
             Return                                                                              'and bail
         End If
-        
     End Sub
-
+    
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    Private Sub cbShowSteps_CheckedChanged(sender As Object, e As EventArgs) Handles cbShowSteps.CheckedChanged           'if show steps checkbox state changes,
+    Private Sub cbShowSteps_CheckedChanged(sender As Object, e As EventArgs) Handles cbShowSteps.CheckedChanged
         If (cbShowSteps.Checked = False) Then
             tableLayoutPanel.RowStyles.Item(1).Height = IMAGE_BOX_PCT_SHOW_STEPS_NOT_CHECKED            'if showing steps, show more of the text box
             tableLayoutPanel.RowStyles.Item(2).Height = TEXT_BOX_PCT_SHOW_STEPS_NOT_CHECKED
@@ -58,9 +57,9 @@ Public Class frmMain
             tableLayoutPanel.RowStyles.Item(2).Height = TEXT_BOX_PCT_SHOW_STEPS_CHECKED
         End If
     End Sub
-
+    
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-    Private Sub btnOpenFile_Click(sender As Object, e As EventArgs) Handles btnOpenFile.Click  
+    Private Sub btnOpenFile_Click(sender As Object, e As EventArgs) Handles btnOpenFile.Click
         Dim imgOriginalScene As New Mat()                       'this is the original image scene
 
         Dim blnImageOpenedSuccessfully = openImageWithErrorHandling(imgOriginalScene)       'attempt to open image
@@ -113,7 +112,7 @@ Public Class frmMain
             
             CvInvoke.Imwrite("imgOriginalScene.png", imgOriginalScene)              'write image out to file
         End If
-        
+
     End Sub
 
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -194,8 +193,3 @@ Public Class frmMain
     End Sub
     
 End Class
-
-
-
-
-
