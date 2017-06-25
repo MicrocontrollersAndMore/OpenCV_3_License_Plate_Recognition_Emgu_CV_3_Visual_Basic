@@ -25,7 +25,7 @@ Public Class frmMain
 
     ' module level variables ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     Const IMAGE_BOX_PCT_SHOW_STEPS_NOT_CHECKED As Single = 75       'these are for changing the proportion of image box to text box based on if we are showing steps or not
-    Const TEXT_BOX_PCT_SHOW_STEPS_NOT_CHECKED  As Single = 25
+    Const TEXT_BOX_PCT_SHOW_STEPS_NOT_CHECKED As Single = 25
 
     Const IMAGE_BOX_PCT_SHOW_STEPS_CHECKED As Single = 55           'the idea is to show more of the text box if we are showing steps since there is more text to display
     Const TEXT_BOX_PCT_SHOW_STEPS_CHECKED As Single = 45
@@ -46,7 +46,9 @@ Public Class frmMain
             Return                                                                              'and bail
         End If
     End Sub
-    
+
+
+
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     Private Sub cbShowSteps_CheckedChanged(sender As Object, e As EventArgs) Handles cbShowSteps.CheckedChanged
         If (cbShowSteps.Checked = False) Then
@@ -57,7 +59,7 @@ Public Class frmMain
             tableLayoutPanel.RowStyles.Item(2).Height = TEXT_BOX_PCT_SHOW_STEPS_CHECKED
         End If
     End Sub
-    
+
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     Private Sub btnOpenFile_Click(sender As Object, e As EventArgs) Handles btnOpenFile.Click
         Dim imgOriginalScene As New Mat()                       'this is the original image scene
@@ -69,14 +71,14 @@ Public Class frmMain
             Return                                                  'and bail
         End If
 
-        lblChosenFile.Text = ofdOpenFile.FileName                   'update label with file name
+        lblChosenFile.Text = openFileDialog.FileName                   'update label with file name
 
         CvInvoke.DestroyAllWindows()                        'close any windows that are open from previous button press
 
         ibOriginal.Image = imgOriginalScene                 'show original image on main form
 
         Dim listOfPossiblePlates As List(Of PossiblePlate) = DetectPlates.detectPlatesInScene(imgOriginalScene)     'detect plates
-        
+
         listOfPossiblePlates = DetectChars.detectCharsInPlates(listOfPossiblePlates)                            'detect chars in plates
 
         If (listOfPossiblePlates Is Nothing) Then                                       'check if list of plates is null or zero
@@ -84,50 +86,49 @@ Public Class frmMain
         ElseIf (listOfPossiblePlates.Count = 0) Then
             txtInfo.AppendText(vbCrLf + "no license plates were detected" + vbCrLf)
         Else
-                                'if we get in here list of possible plates has at leat one plate
+            'if we get in here list of possible plates has at leat one plate
 
-                                'sort the list of possible plates in DESCENDING order (most number of chars to least number of chars)
+            'sort the list of possible plates in DESCENDING order (most number of chars to least number of chars)
             listOfPossiblePlates.Sort(Function(onePlate, otherPlate) otherPlate.strChars.Length.CompareTo(onePlate.strChars.Length))
 
-                                                                        'suppose the plate with the most recognized chars
+            'suppose the plate with the most recognized chars
             Dim licPlate As PossiblePlate = listOfPossiblePlates(0)     '(the first plate in sorted by string length descending order)
-                                                                        'is the actual plate
+            'is the actual plate
 
             CvInvoke.Imshow("final imgPlate", licPlate.imgPlate)            'show the final color plate image 
             CvInvoke.Imshow("final imgThresh", licPlate.imgThresh)          'show the final thresh plate image
-            
+
             If (licPlate.strChars.Length = 0) Then                          'if no chars are present in the lic plate,
                 txtInfo.AppendText(vbCrLf + "no characters were detected" + licPlate.strChars + vbCrLf)     'update info text box
                 Return                                                                                      'and return
             End If
 
             drawRedRectangleAroundPlate(imgOriginalScene, licPlate)                 'draw red rectangle around plate
-            
+
             txtInfo.AppendText(vbCrLf + "license plate read from image = " + licPlate.strChars + vbCrLf)        'write license plate text to text box
             txtInfo.AppendText(vbCrLf + "----------------------------------------" + vbCrLf)
-            
+
             writeLicensePlateCharsOnImage(imgOriginalScene, licPlate)                   'write license plate text on the image
-            
+
             ibOriginal.Image = imgOriginalScene                                     'update image on main form
-            
+
             CvInvoke.Imwrite("imgOriginalScene.png", imgOriginalScene)              'write image out to file
         End If
-
     End Sub
 
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     Function openImageWithErrorHandling(ByRef imgOriginalScene As Mat) As Boolean
         Dim drChosenFile As DialogResult
 
-        drChosenFile = ofdOpenFile.ShowDialog()                 'open file dialog
+        drChosenFile = openFileDialog.ShowDialog()                 'open file dialog
 
-        If (drChosenFile <> DialogResult.OK Or ofdOpenFile.FileName = "") Then          'if user did not choose anything
+        If (drChosenFile <> DialogResult.OK Or openFileDialog.FileName = "") Then          'if user did not choose anything
             lblChosenFile.Text = "file not chosen"                                      'update label
             Return False                                                                'and bail
         End If
-        
+
         Try
-            imgOriginalScene = CvInvoke.Imread(ofdOpenFile.FileName, LoadImageType.Color)           'open image
+            imgOriginalScene = CvInvoke.Imread(openFileDialog.FileName, LoadImageType.Color)           'open image
         Catch ex As Exception                                                                       'if error occurred
             lblChosenFile.Text = "unable to open image, error: " + ex.Message                       'show error message on label
             Return False                                                                            'and exit function
@@ -173,13 +174,13 @@ Public Class frmMain
         Dim intFontThickness As Integer = CInt(dblFontScale * 1.5)          'base font thickness on font scale
         Dim textSize As New Size()
 
-                'to get the text size, we should use the OpenCV function getTextSize, but for some reason Emgu CV does not include this
-                'we can instead estimate the test size based on the font scale, this will not be especially accurate but is good enough for our purposes here
+        'to get the text size, we should use the OpenCV function getTextSize, but for some reason Emgu CV does not include this
+        'we can instead estimate the test size based on the font scale, this will not be especially accurate but is good enough for our purposes here
         textSize.Width = CInt(dblFontScale * 18.5 * licPlate.strChars.Length)
         textSize.Height = CInt(dblFontScale * 25)
-        
+
         ptCenterOfTextArea.X = CInt(licPlate.rrLocationOfPlateInScene.Center.X)         'the horizontal location of the text area is the same as the plate
-        
+
         If (licPlate.rrLocationOfPlateInScene.Center.Y < (imgOriginalScene.Height * 0.75)) Then             'if the license plate is in the upper 3/4 of the image, we will write the chars in below the plate
             ptCenterOfTextArea.Y = CInt(licPlate.rrLocationOfPlateInScene.Center.Y + CInt(CDbl(licPlate.rrLocationOfPlateInScene.MinAreaRect.Height) * 1.6))
         Else                                'else if the license plate is in the lower 1/4 of the image, we will write the chars in above the plate
@@ -188,8 +189,9 @@ Public Class frmMain
 
         ptLowerLeftTextOrigin.X = CInt(ptCenterOfTextArea.X - (textSize.Width / 2))         'calculate the lower left origin of the text area
         ptLowerLeftTextOrigin.Y = CInt(ptCenterOfTextArea.Y + (textSize.Height / 2))        'based on the text area center, width, and height
-        
+
         CvInvoke.PutText(imgOriginalScene, licPlate.strChars, ptLowerLeftTextOrigin, fontFace, dblFontScale, SCALAR_YELLOW, intFontThickness)       'write the text on the image
     End Sub
-    
+
 End Class
+
