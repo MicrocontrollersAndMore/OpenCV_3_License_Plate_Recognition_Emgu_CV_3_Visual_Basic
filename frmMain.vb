@@ -1,7 +1,5 @@
 ﻿'frmMain.vb
 '
-'Emgu CV 3.0.0
-'
 'add the following components to your form:
 'tableLayoutPanel (TableLayoutPanel)
 'btnOpenFile (Button)
@@ -46,8 +44,6 @@ Public Class frmMain
             Return                                                                              'and bail
         End If
     End Sub
-
-
 
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     Private Sub cbShowSteps_CheckedChanged(sender As Object, e As EventArgs) Handles cbShowSteps.CheckedChanged
@@ -128,7 +124,7 @@ Public Class frmMain
         End If
 
         Try
-            imgOriginalScene = CvInvoke.Imread(openFileDialog.FileName, LoadImageType.Color)           'open image
+            imgOriginalScene = CvInvoke.Imread(openFileDialog.FileName)
         Catch ex As Exception                                                                       'if error occurred
             lblChosenFile.Text = "unable to open image, error: " + ex.Message                       'show error message on label
             Return False                                                                            'and exit function
